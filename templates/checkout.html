@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block body %}
+
+<div class="row">
+
+    <div class="col-lg-6">
+        <div class="box-element">
+            <a href="{% url 'cart' %}" class="btn btn-outline-dark">Back To Cart</a>
+            <hr>
+            <h3>Order Summary</h3>
+            <hr>
+            
+            {% for item in items %}
+            <div class="cart-row">
+                <div style="flex: 2;"><img src="{{item.product.imageURL}}"  height="100px" width="100px" alt=""> </div>
+                <div style="flex: 2; margin: auto;"><b> {{item.product.name }}</b></div>
+                <div style="flex: 2; margin: auto;"><b>&#x20A6; {{item.product.price}}</b></div>
+                <div style="flex: 1; margin: auto;"><b>{{item.quantity}}</b></div>
+            </div>
+            {% endfor %}
+
+            <h4><b>NUMBER OF ITEMS : {{order.get_cart_items}}</b></h4>
+            <h4><strong>GRAND TOTAL  : &#x20A6; {{order.get_cart_total|floatformat:2}} </strong></h4>
+        </div>
+     </div>
+
+
+    <div class="col-lg-6">
+        <div class="box-element" id="form-wrapper">
+            <form action="" id="form">
+                <div id="user-info">
+                    <div class="form-field">
+                        <input type="text" name="name" class="form-control"  id="" placeholder="Enter your name..." required>
+                    </div>
+                    <div class="form-field">
+                        <input type="email" name="email" class="form-control"  id="" placeholder="Enter your email..." required>
+                    </div>
+
+                </div>
+                <div id="shipping-info">
+                    <hr>
+                    <p>Shipping information</p>
+                    <hr>
+                    <div class="form-field">
+                        <input type="text" name="address" class="form-control"  id="" placeholder="Enter your address..." required>
+                    </div>
+                    <div class="form-field">
+                        <input type="text" name="city" class="form-control" id="" placeholder="Enter city..." required>
+                    </div>
+                    <div class="form-field">
+                        <input type="text" name="state" class="form-control" id="" placeholder="Enter state..." required>
+                    </div>
+                    <div class="form-field">
+                        <input type="number" class="form-control" name="zipcode" id="" placeholder="Enter zip code..." required>
+                    </div>
+
+                    <hr>
+                    <button class="btn btn-success btn-block" type="button" id="start-payment-button" onclick="makePayment()">Pay Now</button>
+                </div>
+            </form>
+
+        </div>
+        <br>
+        <div class="box-element hidden" id="payment-info">
+            <small>Payment Options</small>
+            <div id="start-payment-button"></div>
+           <!--  <button type="submit" id="make-payment">Make Payment</button>-->
+        </div>
+    </div>
+
+    
+       
+    </div>
+</div>
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<!-- <form>
+    <div>Your order is : &#x20A6; {{order.get_cart_total|floatformat:2}}</div>
+    <button id="start-payment-button" type="button" onclick="makePayment()">Pay Now</button>
+</form> -->
+<script>
+    function makePayment(){
+        FlutterwaveCheckout({
+            public_key: "FLWPUBK_TEST-SANDBOXDEMOKEY-X",
+            tx_ref: "titanic-48981487343MDIONzMx",
+            amount: "{{order.get_cart_total|floatformat:2}}",
+            currency : "NGN",
+            payment_options: "card, banktransfer, ussd",
+            redirect_url: "https://glaciers.titanic.com/handle-flutterwave-payment",
+            meta:{
+                consumer_id:23,
+                consumer_mac:"92a3-912ba-1192a",
+            },
+            customer:{
+                email:"example@ric.com",
+                phone_number:"08123456789",
+                name:'Ric Remijus',
+            },
+            customizations:{
+                title:"The Django store",
+                description: "Payment for goods",
+                logo:"https://www.logolynx.com/images/logolynx/22/2239ca38f5505fbfce7e55bbc0604386.jpeg",
+            },
+        });
+    }
+</script>
+<script>
+    const shipping = '{{order.shipping}}'
+    
+    if(shipping == 'False'){
+        document.getElementById('shipping-info').innerHTML = ''
+    }
+    if(user !== 'AnonymousUser'){
+        document.getElementById('user-info').innerHTML = ''
+    }
+    if(shipping == 'False' && user != 'AnonymousUser'){
+        //Hide entire form if user is logged in and has no shipping to do
+        document.getElementById('form-wrapper').classList.add('hidden');
+        //Show payment if logged in user wants to buy an item that doesn't require shipping
+        document.getElementById('payment-info').classList.remove('hidden')
+    }
+
+
+    const form = document.getElementById('form')
+
+    form.addEventListener('submit', function(e){
+        e.preventDefault()
+        console.log('Form submitted')
+        document.getElementById('form-button').classList.add('hidden')
+        document.getElementById('payment-info').classList.remove('hidden')
+
+    })
+    /*document.getElementById('make-payment').addEventListener('click', function(e){
+        //e.preventDefault()
+        submitFormData()
+    }) */
+    function submitFormData(){
+        console.log('You arbout to pay')
+        const userFormData={
+            'name' : null,
+            'email' : null,
+            'total': total
+        }
+        const shippingInfo={
+            'address': null,
+            'city': null,
+            'state': null,
+            'zipcode' : null
+        }
+        if(shipping != 'False'){
+            shippingInfo.address = form.address.value,
+            shippingInfo.city = form.city.value
+            shippingInfo.state = form.state.value
+            shippingInfo.zipcode = form.zipcode.value
+        }
+        if(user == 'AnonymousUser'){
+            userFormData.name = form.name.value
+            userFormData.email = form.email.value
+        }
+    const url = '/process_order/'
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+        'Content-Type':'application/json',
+        'X-CSRFToken':csrftoken,
+         },
+    body:JSON.stringify({'Form': userFormData, 'Shipping':shippingInfo})
+    })
+   .then((response) => response.json())
+   .then((data) => {
+    console.log('Success:' ,data)
+    alert('Transaction completed !')
+    cart = {}
+        console.log('Cart was created')
+        document.cookie = 'cart=' + JSON.stringify(cart) + ";domain=;path=/"
+    window.location.href ="{% url 'home' %}"
+    });
+    }
+</script>
+{% endblock %}

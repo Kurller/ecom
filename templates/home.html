@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block body %}
+
+<div class="row">
+    {% for product in products %}
+    <div class="col-lg-4">
+        <div class="box-element product">
+            <img src="{{product.imageURL}}" class="card-img-top" height="400px" alt="">
+            <h3><strong>{{product.name}}</strong></h3> <br> <hr>
+           <button class="btn btn-outline-secondary add-btn update-cart" id="submitBtn" data-product={{product.id}} data-action="add"> Add To Cart</button>
+           <a href="{% url 'detail' product.id %}" class="btn btn-outline-success">View Details</a>
+           <h4 style="float: right;">&#x20A6; {{product.price |floatformat:2}}</h4>
+        </div> <br> <br>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
