@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-tk(g+d)vfi1rrz-#y(sr_5i6)_heb(0!)**vfv#kc5#30%cit0
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['containers-us-west-87.railway.app','127.0.0.1']
 
 
 # Application definition
