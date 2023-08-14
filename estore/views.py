@@ -7,9 +7,76 @@ import datetime
 import json
 
 # Create your views here.
+from django.shortcuts import render, redirect
+from django.contrib.auth import get_user_model, login, logout, authenticate
+from django.contrib import messages
+from .forms import UserRegistrationForm
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 
 
-def homeStore(request):
+# Create your views here.
+def register(request):
+    if request.user.is_authenticated:
+        return redirect('/')
+
+    if request.method == "POST":
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, f"New account created: {user.username}")
+            return redirect('/')
+
+        else:
+            for error in list(form.errors.values()):
+                messages.error(request, error)
+
+    else:
+        form = UserRegistrationForm()
+
+    return render(
+        request=request,
+        template_name="register.html",
+        context={"form": form}
+        )
+
+@login_required
+def custom_logout(request):
+    logout(request)
+    messages.info(request, "Logged out successfully!")
+    return redirect("logout")
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("estore:home")
+
+    if request.method == "POST":
+        form = AuthenticationForm(request=request, data=request.POST)
+        if form.is_valid():
+            user = authenticate(
+                username=form.cleaned_data["username"],
+                password=form.cleaned_data["password"],
+            )
+            if user is not None:
+                login(request, user)
+                messages.success(request, f"Hello <b>{user.username}</b>! You have been logged in")
+                return redirect("estore:home")
+
+        else:
+            for error in list(form.errors.values()):
+                messages.error(request, error) 
+
+    form = AuthenticationForm()
+
+    return render(
+        request=request,
+        template_name="login.html",
+        context={"form": form}
+        )
+
+
+def home_view(request):
     data = cartData(request)
     cartItems = data['cartItems']
 
@@ -74,14 +141,13 @@ def processOrder(request):
     transaction_id = datetime.datetime.now().timestamp()
     data = json.loads(request.body)
     if request.user.is_authenticated:
-        customer = request.user.customer
-        order, created = Order.objects.get_or_create(
-            customer=customer, complete=False)
-
+        user = request.user
+        customer = user.customer
+        order, created = Order.objects.get_or_create(customer=customer, complete=False)
     else:
-        customer, order = guestOrder(request, data)
+        # Handle guest order logic here
 
-    total = float(data['Form']['total'])
+     total = float(data['Form']['total'])
     order.transaction_id = transaction_id
 
     if total == float(order.get_cart_total):
@@ -89,12 +155,6 @@ def processOrder(request):
     order.save()
 
     if order.shipping == True:
-        ShippingAddress.objects.create(
-            customer=customer,
-            order=order,
-            address=data['Shipping']['address'],
-            city=data['Shipping']['city'],
-            state=data['Shipping']['state'],
-            zipcode=data['Shipping']['zipcode'],
-        )
-    return JsonResponse('Payment complete !', safe=False)
+        # Handle shipping address logic here
+
+     return JsonResponse('Payment complete!', safe=False)
